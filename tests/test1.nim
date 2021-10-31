@@ -11,16 +11,18 @@ test "full":
     MovableTag = object
 
   # systems
-  proc updatePos(world: var World, entity: uint64) =
-    if world.hasTag(entity, MovableTag) and world.hasComponent(entity, PositionComponent):
+  proc updatePos(world: var World) =
+    var filter = withTag(world, MovableTag).withComponent(world, PositionComponent)
+    for entity in filter.items:
       var position = world.getComponent(entity, PositionComponent)
       position.x += 1
 
 
-  proc printPos(world: var World, entity: uint64) =
-    if world.hasComponent(entity, PositionComponent):
+  proc printPos(world: var World) =
+    var filter = world.withComponent(PositionComponent)
+    for entity in filter.items:
       var position = world.getComponent(entity, PositionComponent)
-      echo (position.entity, position.x, position.y)
+      echo (getEntityId(position.entity), getEntityVersion(position.entity), position.x, position.y)
 
 
   # init
@@ -30,8 +32,7 @@ test "full":
   world.addComponent(entityId, PositionComponent(x: 10))
 
   var entityId2 = world.addEntity
-  var positionComponent = world.addComponent(entityId2, PositionComponent)
-  positionComponent.x = 20
+  world.addComponent(entityId2, PositionComponent(x: 20))
   world.addTag(entityId2, MovableTag)
 
   world.addSystem updatePos
@@ -41,4 +42,8 @@ test "full":
   world.removeTag(entityId2, MovableTag)
   world.callSystems()
   world.removeEntity(entityId2)
+  world.callSystems()
+  entityId2 = world.addEntity
+  world.addComponent(entityId2, PositionComponent(x: 30))
+  world.addTag(entityId2, MovableTag)
   world.callSystems()
