@@ -1,7 +1,7 @@
 # TECS
 TECS - Simple ECS implementation for Nim. TECS is aimed at speed, simplicity and convenience in operation. Also TECS is overly light and simple. It is written without using macros and has no dependencies.
 
-Docs: https://timofffee.github.io/tecs/docs/tecs.html
+Docs: https://timofffee.github.io/tecs.nim/tecs.html
 
 ## Example
 ```Nim
