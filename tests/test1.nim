@@ -41,7 +41,7 @@ test "full":
   world.callSystems()
   world.removeTag(entityId2, MovableTag)
   world.callSystems()
-  world.removeEntity(entityId2)
+  world.freeEntity(entityId2)
   world.callSystems()
   entityId2 = world.addEntity
   world.addComponent(entityId2, PositionComponent(x: 30))
