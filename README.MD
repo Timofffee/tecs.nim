@@ -1,6 +1,5 @@
-# TECS
-[![Build Status](https://nimble.directory/ci/badges/jester/nimdevel/status.svg)](https://nimble.directory/ci/badges/tecs/nimdevel/output.html)
-[![Build Status](https://nimble.directory/ci/badges/jester/nimdevel/docstatus.svg)](https://nimble.directory/ci/badges/tecs/nimdevel/doc_build_output.html)
+# TECS [![Build Status](https://github.com/timofffee/tecs/workflows/CI/badge.svg?branch=master)](https://github.com/timofffee/tecs/actions?query=branch%3Amaster)
+
 
 TECS - Simple ECS implementation for Nim. TECS is aimed at speed, simplicity and convenience in operation. Also TECS is overly light and simple. It is written without using macros and has no dependencies.
 
