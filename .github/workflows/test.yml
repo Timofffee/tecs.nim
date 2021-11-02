@@ -1,0 +1,22 @@
+name: CI
+
+on: [push]
+jobs:
+  Test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+        nim-channel: [stable, devel]
+    runs-on: ${{ matrix.os }}
+    steps:    
+    - uses: actions/checkout@v2
+    - name: Setup nim
+      uses: jiro4989/setup-nim-action@v1
+      with:
+        nim-version: ${{ matrix.nim-channel }}
+    - name: Test
+      shell: bash
+      run: |
+        nim --version
+        nimble test
