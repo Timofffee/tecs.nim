@@ -22,7 +22,8 @@ suite "Full test":
   test "Add entity":
     var entityId = world.addEntity
 
-    check(entityId == 1'u64 shl 32 + 1)
+    check(getEntityId(entityId) == 1)
+    check(getEntityVersion(entityId) == 1)
 
   test "Add component as object":
     var entityId = world.addEntity
@@ -89,7 +90,7 @@ suite "Full test":
     check(filter.len == 1)
     check(filter[0] == entityId2)
   
-  test "Remove component":
+  test "Remove tag":
     var entityId = world.addEntity
     var entityId2 = world.addEntity
     world.addTag(entityId, MovableTag)
@@ -104,29 +105,18 @@ suite "Full test":
     check(filter.len == 1)
     check(filter[0] == entityId2)
 
-# test "full":
+  test "Free entity":
+    var entityId = world.addEntity
+    var entityId2 = world.addEntity
+    world.addTag(entityId, MovableTag)
+    world.addTag(entityId2, MovableTag)
+    var filter = world.withTag(MovableTag)
 
-#   # systems
-#   proc updatePos(world: var World) =
-#     var filter = withTag(world, MovableTag).withComponent(world, PositionComponent)
-#     for entity in filter.items:
-#       var position = world.getComponent(entity, PositionComponent)
-#       position.x += 1
+    check(filter.len == 2)
 
+    world.freeEntity(entityId)
+    filter = world.withTag(MovableTag)
 
-#   proc printPos(world: var World) =
-#     var filter = world.withComponent(PositionComponent)
-#     for entity in filter.items:
-#       var position = world.getComponent(entity, PositionComponent)
-#       echo (getEntityId(position.entity), getEntityVersion(position.entity), position.x, position.y)
+    check(filter.len == 1)
+    check(filter[0] == entityId2)
 
-
-#   world.callSystems()
-#   world.removeTag(entityId2, MovableTag)
-#   world.callSystems()
-#   world.freeEntity(entityId2)
-#   world.callSystems()
-#   entityId2 = world.addEntity
-#   world.addComponent(entityId2, PositionComponent(x: 30))
-#   world.addTag(entityId2, MovableTag)
-#   world.callSystems()
