@@ -76,10 +76,9 @@ proc updateBunnies(world: var World) =
       mov.speed.y = mov.speed.y * -1
 
 
-proc drawBunnies(world: var World) =
+proc drawBunnies(world: World) =
   let filter = withComponent(world, PositionComponent).withComponent(world, MovableComponent)
   
-  beginDrawing()
   clearBackground(Raywhite)
   for eid in 0..<filter.len:
     let entity = filter[eid]
@@ -87,27 +86,25 @@ proc drawBunnies(world: var World) =
     var spr = world.getComponent(entity, SpriteComponent)
     drawTexture(spr.texture, pos.position.x.cint, pos.position.y.cint,
               spr.color)
-  
 
-proc drawUI(world: var World) =
+
+proc drawUI() =
   drawRectangle(0, 0, screenWidth, 40, Black)
   drawText(textFormat("bunnies: %i", bunniesCount), 120, 10, 20, Green)
   drawText(textFormat("batched draw calls: %i",
                       1 + bunniesCount div MAX_BATCH_ELEMENTS), 320, 10, 20, Maroon)
   drawFPS(10, 10)
-  endDrawing()
-  
 
 
 var world = initWorld()
 
-world.addSystem updateBunnies
-world.addSystem drawBunnies
-world.addSystem drawUI
-world.addSystem addBunnies
 
 while not windowShouldClose(): ##  Detect window close button or ESC key
-  world.callSystems
+  addBunnies(world)
+  updateBunnies(world)
+  beginDrawing:
+    drawBunnies(world)
+    drawUI()
 unloadTexture(texBunny)
 closeWindow()
 

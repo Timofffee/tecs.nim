@@ -38,21 +38,6 @@
 ##  
 ##  world.addTag(entity, BasicTag)
 ## 
-## Systems accept only one argument as a single argument - `var World`. 
-## All further actions can be performed at the discretion of the developer (filtering entities, for example).
-## There is also filtering for convenient entity search. You can filter entities both by tag and by a specific component.
-## 
-## .. code-block:: Nim
-##  # system
-##  proc changeVal(world: var World) =
-##    var filter = withTag(world, BasicTag).withComponent(world, BasicComponent)
-##    for entity in filter.items:
-##      var component = world.getComponent(entity, BasicComponent)
-##      component.x += 1
-##  
-##  world.addSystem changeVal
-##  
-##  world.callSystems
 ## 
 ## ECS is written in such a way that you can add/remove/change an entity/component/tag at any time. But be careful with this.
 ## 
@@ -65,10 +50,10 @@ type
     tagBitmask*: uint32
   
   World* = object
-    ## The World contains all entities, components and systems. 
+    ## The World contains all entities and components. 
     ## In fact, it is a container that is the foundation for the work 
-    ## of everything else. The world is responsible for the storage of entities, 
-    ## and for the storage of components, and for the storage of systems, 
+    ## of everything else. The world is responsible for the storage of entities 
+    ## and for the storage of components, 
     ## with their subsequent implementation.
     entities: seq[Entity]
     freeEntities: seq[uint32]
@@ -78,7 +63,6 @@ type
     components: seq[pointer]
     componentTypeList: seq[string]
     tagTypeList: seq[string]
-    systems: seq[proc(world: var World)]
 
 proc initWorld*(initAlloc: uint32 = 1000, allocSize: uint32 = 1000): World =
   ## Initialization of a World object. 
@@ -267,22 +251,6 @@ proc withComponent*(entities: seq[uint64], world: var World, componentType: type
       result.add entity
 
 
-proc addSystem*(world: var World, system: proc(world: var World)) {.inline.} =
-  ## Adding a system to the list of systems called by the world. 
-  ## The system must accept only one argument - `world: var World`.
-  world.systems.add system
-
-  
-template callSystems*(world: var World): untyped =
-  ## Calling all systems. This is just a simplification so that systems 
-  ## can be called as simply as possible. 
-  ## If you want to manually manage calling systems, then just don't use 
-  ## `addSystem(world: var World, system: proc(world: var World))` and call the systems manually.
-  for systemCall in world.systems.items:
-    systemCall(world)
-
-
-      
 when isMainModule:
   # components
   type 
@@ -300,7 +268,7 @@ when isMainModule:
       position.x += 1
 
 
-  proc printPos(world: var World) =
+  proc printPos(world: World) =
     var filter = world.withComponent(PositionComponent)
     for entity in filter.items:
       var position = world.getComponent(entity, PositionComponent)
@@ -317,15 +285,16 @@ when isMainModule:
   world.addComponent(entityId2, PositionComponent(x: 20))
   world.addTag(entityId2, MovableTag)
 
-  world.addSystem updatePos
-  world.addSystem printPos
+  proc callSystems =
+    updatePos(world)
+    printPos(world)
 
-  world.callSystems()
+  callSystems()
   world.removeTag(entityId2, MovableTag)
-  world.callSystems()
+  callSystems()
   world.freeEntity(entityId2)
-  world.callSystems()
+  callSystems()
   entityId2 = world.addEntity
   world.addComponent(entityId2, PositionComponent(x: 30))
   world.addTag(entityId2, MovableTag)
-  world.callSystems()
+  callSystems()

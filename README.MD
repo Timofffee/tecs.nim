@@ -43,18 +43,19 @@ var entityId2 = world.addEntity
 world.addComponent(entityId2, PositionComponent(x: 20))
 world.addTag(entityId2, MovableTag)
 
-world.addSystem updatePos
-world.addSystem printPos
+proc callSystems =
+  updatePos(world)
+  printPos(world)
 
-world.callSystems()
+callSystems()
 world.removeTag(entityId2, MovableTag)
-world.callSystems()
+callSystems()
 world.freeEntity(entityId2)
-world.callSystems()
+callSystems()
 entityId2 = world.addEntity
 world.addComponent(entityId2, PositionComponent(x: 30))
 world.addTag(entityId2, MovableTag)
-world.callSystems()
+callSystems()
 ```
 
 ## Contributing
