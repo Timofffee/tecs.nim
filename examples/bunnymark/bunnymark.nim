@@ -1,13 +1,22 @@
+# ******************************************************************************************
+#
+#    raylib [textures] example - Bunnymark
+#
+#    This example has been created using raylib 1.6 (www.raylib.com)
+#    raylib is licensed under an unmodified zlib/libpng license (View raylib.h for details)
+#
+#    Copyright (c) 2014-2019 Ramon Santamaria (@raysan5)
+#    Converted in 2021 by greenfork
+#    Converted in tecs by timofffee
+#
+# ******************************************************************************************
+
 import lenientops
 import nimraylib_now
 import ../../src/tecs
-import std/algorithm
 
 const
   MAX_BUNNIES = 50000
-
-##  This is the maximum amount of elements (quads) per batch
-##  NOTE: This value is defined in [rlgl] module and can be changed there
 
 const
   MAX_BATCH_ELEMENTS = 8192
@@ -76,7 +85,7 @@ proc updateBunnies(world: var World) =
       mov.speed.y = mov.speed.y * -1
 
 
-proc drawBunnies(world: World) =
+proc drawBunnies(world: var World) =
   let filter = withComponent(world, PositionComponent).withComponent(world, MovableComponent)
   
   clearBackground(Raywhite)
