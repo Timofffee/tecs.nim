@@ -1,0 +1,18 @@
+Quick Tutorial	tecs.html#quick-tutorial	 Quick Tutorial	
+Entity	tecs.html#Entity	tecs: Entity	
+World	tecs.html#World	tecs: World	
+initWorld	tecs.html#initWorld,uint32,uint32	tecs: initWorld(initAlloc: uint32 = 1000; allocSize: uint32 = 1000): World	
+getEntityId	tecs.html#getEntityId,uint64	tecs: getEntityId(entity: uint64): uint32	
+getEntityVersion	tecs.html#getEntityVersion,uint64	tecs: getEntityVersion(entity: uint64): uint32	
+addEntity	tecs.html#addEntity,World	tecs: addEntity(world: var World): uint64	
+removeComponent	tecs.html#removeComponent,World,uint64,typedesc	tecs: removeComponent(world: var World; entity: uint64; componentType: typedesc)	
+removeTag	tecs.html#removeTag,World,uint64,typedesc	tecs: removeTag(world: var World; entity: uint64; tagType: typedesc)	
+freeEntity	tecs.html#freeEntity,World,uint64	tecs: freeEntity(world: var World; entity: uint64)	
+addComponent	tecs.html#addComponent,World,uint64,typedesc[T]	tecs: addComponent[T](world: var World; entity: uint64; componentType: typedesc[T]): ptr T	
+addComponent	tecs.html#addComponent,World,uint64,T	tecs: addComponent[T](world: var World; entity: uint64; component: T): ptr T	
+addTag	tecs.html#addTag,World,uint64,typedesc	tecs: addTag(world: var World; entity: uint64; tagType: typedesc)	
+getComponent	tecs.html#getComponent,World,uint64,typedesc[T]	tecs: getComponent[T](world: var World; entity: uint64; componentType: typedesc[T]): ptr T	
+withTag	tecs.html#withTag,World,typedesc	tecs: withTag(world: var World; tagType: typedesc): seq[uint64]	
+withTag	tecs.html#withTag,seq[uint64],World,typedesc	tecs: withTag(entities: seq[uint64]; world: var World; tagType: typedesc): seq[uint64]	
+withComponent	tecs.html#withComponent,World,typedesc	tecs: withComponent(world: var World; componentType: typedesc): seq[uint64]	
+withComponent	tecs.html#withComponent,seq[uint64],World,typedesc	tecs: withComponent(entities: seq[uint64]; world: var World; componentType: typedesc): seq[\n    uint64]	

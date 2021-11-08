@@ -3,20 +3,18 @@
 
 TECS - Simple ECS implementation for Nim. TECS is aimed at speed, simplicity and convenience in operation. Also TECS is overly light and simple. It is written without using macros and has no dependencies.
 
-Docs: https://timofffee.github.io/tecs.nim/
+Docs: https://timofffee.github.io/tecs.nim/tecs.html
 
 Install: ```nimble install tecs```
 
 ## Example
 ```Nim
-type 
-  # Component
-  PositionComponent = object
-    entity: uint64
-    x: int
-    y: int
-  # Tag
-  MovableTag = object
+# Component
+type PositionComponent = object
+  x: int
+  y: int
+# Tag
+type MovableTag = object
 
 # systems
 proc updatePos(world: var World) =
@@ -30,7 +28,7 @@ proc printPos(world: var World) =
   var filter = world.withComponent(PositionComponent)
   for entity in filter.items:
     var position = world.getComponent(entity, PositionComponent)
-    echo (getEntityId(position.entity), getEntityVersion(position.entity), position.x, position.y)
+    echo (getEntityId(entity), getEntityVersion(entity), position.x, position.y)
 
 
 # init
@@ -43,7 +41,7 @@ var entityId2 = world.addEntity
 world.addComponent(entityId2, PositionComponent(x: 20))
 world.addTag(entityId2, MovableTag)
 
-proc callSystems =
+proc callSystems {.inline.} =
   updatePos(world)
   printPos(world)
 

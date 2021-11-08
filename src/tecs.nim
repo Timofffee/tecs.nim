@@ -176,7 +176,6 @@ proc addComponent*[T](world: var World, entity: uint64, componentType: typedesc[
   let entityId = getEntityId(entity)
   var componentList = world.getComponentList(componentType)
   componentList[][entityId] = T()
-  componentList[][entityId].entity = entity
   world.entities[entityId].componentBitmask = world.entities[entityId].componentBitmask or (1 shl world.getComponentID(T)).uint32
 
   return componentList[][entityId].addr
@@ -188,7 +187,6 @@ proc addComponent*[T](world: var World, entity: uint64, component: T): ptr T {.d
   let entityId = getEntityId(entity)
   var componentList = world.getComponentList(T)
   componentList[][entityId] = component
-  componentList[][entityId].entity = entity
   world.entities[entityId].componentBitmask = world.entities[entityId].componentBitmask or (1 shl world.getComponentID(T)).uint32
 
   return componentList[][entityId].addr
@@ -255,7 +253,6 @@ when isMainModule:
   # components
   type 
     PositionComponent = object
-      entity: uint64
       x: int
       y: int
     MovableTag = object
@@ -268,11 +265,11 @@ when isMainModule:
       position.x += 1
 
 
-  proc printPos(world: World) =
+  proc printPos(world: var World) =
     var filter = world.withComponent(PositionComponent)
     for entity in filter.items:
       var position = world.getComponent(entity, PositionComponent)
-      echo (getEntityId(position.entity), getEntityVersion(position.entity), position.x, position.y)
+      echo (getEntityId(entity), getEntityVersion(entity), position.x, position.y)
 
 
   # init

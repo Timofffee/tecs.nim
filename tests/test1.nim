@@ -39,7 +39,6 @@ suite "Full test":
       world.addComponent(entityId, PositionComponent(x: 10))
       var component = world.getComponent(entityId, PositionComponent)
 
-      check(component.entity == entityId)
       check(component.x == 10)
       check(component.y == 0)
     block:
@@ -47,7 +46,6 @@ suite "Full test":
       var c = world.addComponent(entityId, PositionComponent)
       var component = world.getComponent(entityId, PositionComponent)
 
-      check(component.entity == entityId)
       check(component.x == 0)
       check(component.y == 0)
 

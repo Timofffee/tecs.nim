@@ -1,19 +1,7 @@
-# ******************************************************************************************
-#
-#    raylib [textures] example - Bunnymark
-#
-#    This example has been created using raylib 1.6 (www.raylib.com)
-#    raylib is licensed under an unmodified zlib/libpng license (View raylib.h for details)
-#
-#    Copyright (c) 2014-2019 Ramon Santamaria (@raysan5)
-#    Converted in 2021 by greenfork
-#    Converted in tecs by timofffee
-#
-# ******************************************************************************************
-
 import lenientops
 import nimraylib_now
 import ../../src/tecs
+import std/algorithm
 
 const
   MAX_BUNNIES = 50000
@@ -23,10 +11,13 @@ const
 
 type
   PositionComponent = object
+    entity: uint64
     position: Vector2
   MovableComponent = object
+    entity: uint64
     speed: Vector2
   SpriteComponent = object
+    entity: uint64
     color: Color
     texture: Texture2D
 
@@ -84,17 +75,22 @@ proc updateBunnies(world: var World) =
 
 proc drawBunnies(world: var World) =
   let filter = withComponent(world, PositionComponent).withComponent(world, MovableComponent)
-  
-  clearBackground(Raywhite)
+  var components = newSeq[tuple[pos: ptr PositionComponent, spr: ptr SpriteComponent]](filter.len)
   for eid in 0..<filter.len:
     let entity = filter[eid]
-    var pos = world.getComponent(entity, PositionComponent)
-    var spr = world.getComponent(entity, SpriteComponent)
-    drawTexture(spr.texture, pos.position.x.cint, pos.position.y.cint,
-              spr.color)
+    components[eid] = (pos: world.getComponent(entity, PositionComponent), spr: world.getComponent(entity, SpriteComponent))
+  components.sort do (x, y: tuple[pos: ptr PositionComponent, spr: ptr SpriteComponent]) -> int:
+    result = cmp(x.pos.position.y, y.pos.position.y)
+    if result == 0:
+      result = cmp(x.pos.position.x, y.pos.position.x)
 
+  clearBackground(Raywhite)
+  for eid in 0..<components.len:
+    drawTexture(components[eid].spr.texture, components[eid].pos.position.x.cint, components[eid].pos.position.y.cint,
+              components[eid].spr.color)
+  
 
-proc drawUI() =
+proc drawUI(world: var World) =
   drawRectangle(0, 0, screenWidth, 40, Black)
   drawText(textFormat("bunnies: %i", bunniesCount), 120, 10, 20, Green)
   drawText(textFormat("batched draw calls: %i",
@@ -104,13 +100,15 @@ proc drawUI() =
 
 var world = initWorld()
 
+proc callSystems {.inline.} =
+  world.addBunnies
+  world.updateBunnies
+  beginDrawing:
+    world.drawBunnies
+    world.drawUI
 
 while not windowShouldClose(): ##  Detect window close button or ESC key
-  addBunnies(world)
-  updateBunnies(world)
-  beginDrawing:
-    drawBunnies(world)
-    drawUI()
+  callSystems()
 unloadTexture(texBunny)
 closeWindow()
 
