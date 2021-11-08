@@ -49,6 +49,11 @@ type
     componentBitmask*: uint32
     tagBitmask*: uint32
   
+  ComponentList = object
+    list_ptr: pointer
+    count: uint32
+    component_size: int
+  
   World* = object
     ## The World contains all entities and components. 
     ## In fact, it is a container that is the foundation for the work 
@@ -57,12 +62,25 @@ type
     ## with their subsequent implementation.
     entities: seq[Entity]
     freeEntities: seq[uint32]
-    currentEntityId*: uint32    
+    currentEntityId*: uint32
     maxEntityId*: uint32
     allocSize*: uint32
-    components: seq[pointer]
+    components: seq[ComponentList]
     componentTypeList: seq[string]
     tagTypeList: seq[string]
+
+proc `=destroy`(world: var World) =
+  for componentList in world.components.mitems:
+    deallocShared(componentList.list_ptr)
+
+  `=destroy`(world.entities)
+  `=destroy`(world.freeEntities)
+  `=destroy`(world.currentEntityId)
+  `=destroy`(world.maxEntityId)
+  `=destroy`(world.allocSize)
+  `=destroy`(world.components)
+  `=destroy`(world.componentTypeList)
+  `=destroy`(world.tagTypeList)
 
 proc initWorld*(initAlloc: uint32 = 1000, allocSize: uint32 = 1000): World =
   ## Initialization of a World object. 
@@ -99,8 +117,13 @@ proc getNewEntityID(world: var World): uint32 {.inline.} =
 
 
 proc registerComponent(world: var World, componentType: typedesc) {.inline.} =
-  world.components.add(allocShared0(sizeof(seq[componentType])))
-  cast[var seq[componentType]](world.components[^1]).setLen(world.maxEntityId)
+  world.components.add(
+    ComponentList(
+      list_ptr: allocShared0(sizeof(componentType)*world.maxEntityId.int),
+      count: world.maxEntityId,
+      component_size: sizeof(componentType)
+    ),
+  )
   world.componentTypeList.add($componentType)
 
 
@@ -137,12 +160,17 @@ proc addEntity*(world: var World): uint64 =
   return id.uint64 shl 32 + world.entities[id].version.uint64
 
 
-proc getComponentList[T](world: var World, componentType: typedesc[T]): ptr seq[T] =
+proc getComponentList[T](world: var World, componentType: typedesc[T]): ptr UncheckedArray[T] =
   let componentId = world.getComponentID(componentType)
-  if cast[ptr seq[T]](world.components[componentId])[].len != world.maxEntityId.int:
-    cast[ptr seq[T]](world.components[componentId])[].setLen(world.maxEntityId)
+  if (world.components[componentId]).count != world.maxEntityId:
+    world.components[componentId].list_ptr = reallocShared0(
+      world.components[componentId].list_ptr, 
+      world.components[componentId].component_size * world.components[componentId].count.int,
+      world.components[componentId].component_size * world.maxEntityId.int
+    )
+    world.components[componentId].count = world.maxEntityId
 
-  return cast[ptr seq[T]](world.components[componentId]) 
+  return cast[ptr UncheckedArray[T]](world.components[componentId].list_ptr) 
 
 
 proc removeComponent*(world: var World, entity: uint64, componentType: typedesc) =
@@ -268,7 +296,7 @@ when isMainModule:
       position.x += 1
 
 
-  proc printPos(world: World) =
+  proc printPos(world: var World) =
     var filter = world.withComponent(PositionComponent)
     for entity in filter.items:
       var position = world.getComponent(entity, PositionComponent)
