@@ -1,3 +1,18 @@
+# ******************************************************************************************
+#
+#    raylib [textures] example - Bunnymark
+#
+#    This example has been created using raylib 1.6 (www.raylib.com)
+#    raylib is licensed under an unmodified zlib/libpng license (View raylib.h for details)
+#
+#    Copyright (c) 2014-2019 Ramon Santamaria (@raysan5)
+#    Converted in 2021 by greenfork
+#    Converted in tecs by timofffee
+#
+# ******************************************************************************************
+
+# This code differs from the original `bunnimark.nim` in that it tries to sort bunnies by Y.
+
 import lenientops
 import nimraylib_now
 import ../../src/tecs
@@ -11,13 +26,10 @@ const
 
 type
   PositionComponent = object
-    entity: uint64
     position: Vector2
   MovableComponent = object
-    entity: uint64
     speed: Vector2
   SpriteComponent = object
-    entity: uint64
     color: Color
     texture: Texture2D
 
