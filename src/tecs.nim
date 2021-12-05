@@ -42,12 +42,13 @@
 ## ECS is written in such a way that you can add/remove/change an entity/component/tag at any time. But be careful with this.
 ## 
 
+import bigmask
+
 type 
   Entity* = object
     ## Base Entity object 
     version*: uint32
-    componentBitmask*: uint32
-    tagBitmask*: uint32
+    componentBitmask*: Bigmask
   
   ComponentList = object
     list_ptr: pointer
@@ -67,7 +68,6 @@ type
     allocSize*: uint32
     components: seq[ComponentList]
     componentTypeList: seq[string]
-    tagTypeList: seq[string]
 
 proc `=destroy`(world: var World) =
   for componentList in world.components.mitems:
@@ -80,7 +80,6 @@ proc `=destroy`(world: var World) =
   `=destroy`(world.allocSize)
   `=destroy`(world.components)
   `=destroy`(world.componentTypeList)
-  `=destroy`(world.tagTypeList)
 
 proc initWorld*(initAlloc: uint32 = 1000, allocSize: uint32 = 1000): World =
   ## Initialization of a World object. 
@@ -135,17 +134,6 @@ proc getComponentID(world: var World, componentType: typedesc): uint32 =
   return componentIdx.uint32
 
 
-proc registerTag(world: var World, tagType: typedesc) {.inline.} =
-  world.tagTypeList.add($tagType)
-
-
-proc getTagID(world: var World, tagType: typedesc): uint32 =
-  if world.tagTypeList.find($tagType) == -1:
-    world.registerTag(tagType)
-  
-  return world.tagTypeList.find($tagType).uint32
-
-
 proc addEntity*(world: var World): uint64 =
   ## Adding a new entity to the world. Returns the entity identifier.
   var id: uint32 = 0
@@ -156,6 +144,9 @@ proc addEntity*(world: var World): uint64 =
     while id >= world.maxEntityId:
       world.increaseWorld()
   world.entities[id].version += 1
+
+  if world.entities[id].version == 1:
+    world.entities[id].componentBitmask = initBigmask(4)
 
   return id.uint64 shl 32 + world.entities[id].version.uint64
 
@@ -175,27 +166,18 @@ proc getComponentList[T](world: var World, componentType: typedesc[T]): ptr Unch
 
 proc removeComponent*(world: var World, entity: uint64, componentType: typedesc) =
   ## Remove a component from an entity located in the world.
-  var bitmaskId = (1 shl world.getComponentID(componentType)).uint32
-  if (world.entities[getEntityId(entity)].componentBitmask and bitmaskId.uint32) != bitmaskId.uint32:
+  var componentId = world.getComponentID(componentType).int
+  if world.entities[getEntityId(entity)].componentBitmask.has(componentId) == false:
     return
-  world.entities[getEntityId(entity)].componentBitmask = world.entities[getEntityId(entity)].componentBitmask xor bitmaskId
+  world.entities[getEntityId(entity)].componentBitmask.remove(componentId)
 
-  
-proc removeTag*(world: var World, entity: uint64, tagType: typedesc) =
-  ## Remove a component from an entity located in the world.
-  var bitmaskId = (1 shl world.getTagID(tagType)).uint32
-  if (world.entities[getEntityId(entity)].tagBitmask and bitmaskId.uint32) != bitmaskId.uint32:
-    return
-  world.entities[getEntityId(entity)].tagBitmask = world.entities[getEntityId(entity)].tagBitmask xor bitmaskId
-  
 
 proc freeEntity*(world: var World, entity: uint64) =
   ## Remove an entity from the world. 
   ## In fact, the entity will not be removed, but only clear the bitmask of components 
   ## and tags, and will also be moved to the list of recently released entities.
   let entityId = getEntityId(entity)
-  world.entities[entityId].componentBitmask = 0
-  world.entities[entityId].tagBitmask = 0
+  world.entities[entityId].componentBitmask.clear()
   world.freeEntities.add(entityId)
 
 
@@ -204,7 +186,7 @@ proc addComponent*[T](world: var World, entity: uint64, componentType: typedesc[
   let entityId = getEntityId(entity)
   var componentList = world.getComponentList(componentType)
   componentList[][entityId] = T()
-  world.entities[entityId].componentBitmask = world.entities[entityId].componentBitmask or (1 shl world.getComponentID(T)).uint32
+  world.entities[entityId].componentBitmask.add(world.getComponentID(T).int)
 
   return componentList[][entityId].addr
 
@@ -215,20 +197,9 @@ proc addComponent*[T](world: var World, entity: uint64, component: T): ptr T {.d
   let entityId = getEntityId(entity)
   var componentList = world.getComponentList(T)
   componentList[][entityId] = component
-  world.entities[entityId].componentBitmask = world.entities[entityId].componentBitmask or (1 shl world.getComponentID(T)).uint32
+  world.entities[entityId].componentBitmask.add(world.getComponentID(T).int)
 
   return componentList[][entityId].addr
-
-
-proc addTag*(world: var World, entity: uint64, tagType: typedesc) =
-  ## Add a tag for an entity located in the world. 
-  ## Tags, like entities, are objects, but they do not contain 
-  ## fields and no memory is allocated for them. 
-  ## In fact, they are stored only in the entity bitmask. 
-  ## Use them if you need to mark any object. They will help you save 
-  ## performance and memory, unlike if you were using a borderless component.
-  let entityId = getEntityId(entity)
-  world.entities[entityId].tagBitmask = world.entities[entityId].tagBitmask or (1 shl world.getTagID(tagType)).uint32
 
 
 proc getComponent*[T](world: var World, entity: uint64, componentType: typedesc[T]): ptr T =
@@ -247,33 +218,18 @@ proc getComponent*[T](world: var World, entity: uint64, componentType: typedesc[
   return componentList[][entityId].addr
 
 
-proc withTag*(world: var World, tagType: typedesc): seq[uint64] =
-  ## It is used in systems for initial filtering of entities by tag.
-  var bitmaskId = (1 shl world.getTagID(tagType)).uint32
-  for i in 0..<world.entities.len:
-    if (world.entities[i].tagBitmask and bitmaskId) == bitmaskId:
-      result.add i.uint64 shl 32 + world.entities[i].version.uint64
-
-proc withTag*(entities: seq[uint64], world: var World, tagType: typedesc): seq[uint64] =
-  ## It is used in filter chains in systems for initial filtering of entities by tag.
-  var bitmaskId = (1 shl world.getTagID(tagType)).uint32
-  for entity in entities.items:
-    if (world.entities[getEntityId(entity)].tagBitmask and bitmaskId) == bitmaskId:
-      result.add entity
-
-
-proc withComponent*(world: var World, componentType: typedesc): seq[uint64] =
+proc with*(world: var World, componentType: typedesc): seq[uint64] =
   ## It is used in systems for initial filtering of entities by components.
-  var bitmaskId = (1 shl world.getComponentID(componentType)).uint32
+  var componentId = world.getComponentID(componentType).int
   for i in 0..<world.entities.len:
-    if (world.entities[i].componentBitmask and bitmaskId) == bitmaskId:
+    if world.entities[i].componentBitmask.has(componentId) == true:
       result.add i.uint64 shl 32 + world.entities[i].version.uint64
 
-proc withComponent*(entities: seq[uint64], world: var World, componentType: typedesc): seq[uint64] =
+proc with*(entities: seq[uint64], world: var World, componentType: typedesc): seq[uint64] =
   ## It is used in filter chains in systems for initial filtering of entities by components.
-  var bitmaskId = (1 shl world.getComponentID(componentType)).uint32
+  var componentId = world.getComponentID(componentType).int
   for entity in entities.items:
-    if (world.entities[getEntityId(entity)].componentBitmask and bitmaskId) == bitmaskId:
+    if world.entities[getEntityId(entity)].componentBitmask.has(componentId):
       result.add entity
 
 
@@ -287,14 +243,15 @@ when isMainModule:
 
   # systems
   proc updatePos(world: var World) =
-    var filter = withTag(world, MovableTag).withComponent(world, PositionComponent)
+    var filter = world.with(PositionComponent).with(world, MovableTag)
+    # var filter = with(world, PositionComponent, MovableTag)
     for entity in filter.items:
       var position = world.getComponent(entity, PositionComponent)
       position.x += 1
 
 
   proc printPos(world: var World) =
-    var filter = world.withComponent(PositionComponent)
+    var filter = world.with(PositionComponent)
     for entity in filter.items:
       var position = world.getComponent(entity, PositionComponent)
       echo (getEntityId(entity), getEntityVersion(entity), position.x, position.y)
@@ -308,18 +265,18 @@ when isMainModule:
 
   var entityId2 = world.addEntity
   world.addComponent(entityId2, PositionComponent(x: 20))
-  world.addTag(entityId2, MovableTag)
+  world.addComponent(entityId2, MovableTag)
 
   proc callSystems =
     updatePos(world)
     printPos(world)
 
   callSystems()
-  world.removeTag(entityId2, MovableTag)
+  world.removeComponent(entityId2, MovableTag)
   callSystems()
   world.freeEntity(entityId2)
   callSystems()
   entityId2 = world.addEntity
   world.addComponent(entityId2, PositionComponent(x: 30))
-  world.addTag(entityId2, MovableTag)
+  world.addComponent(entityId2, MovableTag)
   callSystems()
